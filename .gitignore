@@ -1,0 +1,8 @@
+app.log
+processing.log
+Attention_process/__pycache__/*
+Attention_process/Classes/__pycache__/*
+Attention_process/io_outils/__pycache__/*
+Attention_process/utils/__pycache__/*
+Attention_process/services/__pycache__/*
+output_concat/*

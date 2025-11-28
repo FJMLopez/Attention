@@ -28,12 +28,12 @@ def setup_logging(log_file: str = "app.log", level: int = logging.INFO) -> loggi
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
 
-    # Handler Fichier (Rotation après 5MB, garde 3 backups)
+    # Handler Fichier (Rotation après 500MB, garde 3 backups)
     file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3)
     file_handler.setFormatter(formatter)
 
     # Configuration du logger racine
-    logger = logging.getLogger("AttentionProcessor")
+    logger = logging.getLogger("Attention_process")
     logger.setLevel(level)
     
     # Éviter la duplication des logs si la fonction est appelée plusieurs fois

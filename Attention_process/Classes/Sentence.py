@@ -2,8 +2,8 @@ import json
 from dataclasses import dataclass
 from typing import ClassVar, List
 
-from config import HEAD_DOCUMENTS_FILE
-from utils import get_documents_heads
+from Attention_process.Classes.config import HEAD_DOCUMENTS_FILE
+from Attention_process.Classes.utils import get_documents_heads
 
 @dataclass
 class Sentence:

@@ -5,13 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Union, Optional, Literal, TYPE_CHECKING, Any
 
-# Gestion des dépendances optionnelles (xlsxwriter)
-try:
-    import xlsxwriter
-    HAS_XLSXWRITER = True
-except ImportError:
-    HAS_XLSXWRITER = False
-
 
 @dataclass(frozen=True)
 class Matrix:
