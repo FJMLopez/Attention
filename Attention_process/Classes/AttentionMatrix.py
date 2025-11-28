@@ -156,7 +156,7 @@ class AttentionMatrix:
 
     def save(self, 
              output_dir: str, 
-             format: Literal['json', 'tsv', 'xlsx'] = 'json',
+             format: Literal['json', 'pdf_heatmap', 'tsv', 'xlsx'] = 'json',
              precision: int = 2,
              filename_suffix: str = "") -> None:
         """
@@ -164,7 +164,7 @@ class AttentionMatrix:
         
         Args:
             output_dir: Dossier de destination.
-            format: 'json', 'tsv' ou 'xlsx'.
+            format: 'json', 'pdf', 'tsv' ou 'xlsx'.
             precision: Nombre de décimales.
             filename_suffix: Suffixe optionnel pour le nom du fichier.
         """
@@ -179,6 +179,8 @@ class AttentionMatrix:
             MatrixExporter.to_tsv(self.matrix, self.row_sentence, self.col_sentence, output_dir, filename, precision, create_folder=True)
         elif format == 'xlsx':
             MatrixExporter.to_xlsx(self.matrix, self.row_sentence, self.col_sentence, output_dir, filename, precision, create_folder=True)
+        elif format == 'pdf_heatmap':
+            MatrixExporter.to_pdf_heatmap(self.matrix, self.row_sentence, self.col_sentence, output_dir, filename, create_folder=True)
         else:
             raise ValueError(f"Format non supporté: {format}")
 

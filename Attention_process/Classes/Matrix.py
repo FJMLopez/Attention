@@ -1,10 +1,12 @@
 # matrix.py
 import json
+import logging
 import numpy as np
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Union, Optional, Literal, TYPE_CHECKING, Any
 
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Matrix:
@@ -54,6 +56,57 @@ class Matrix:
             List[List[float]]: Données formatées.
         """
         return np.round(self.data, decimals=precision).tolist()
+
+    def transpose(self) -> 'Matrix':
+        """Retourne la transposée de la matrice."""
+        return Matrix(self.data.T)
+    
+    def ensure_stochastic(self, epsilon: float = 1e-4) -> 'Matrix':
+        """
+        Vérifie que la somme de chaque ligne est égale à 1 (propriété d'attention).
+        Si ce n'est pas le cas, tente une transposition.
+        
+        Logique:
+        1. Vérifie Somme(Lignes) == 1. Si OK -> Retourne self.
+        2. Sinon, transpose et vérifie Somme(Lignes) == 1.
+           Si OK -> Log Warning + Retourne la matrice transposée.
+        3. Sinon -> Lève ValueError.
+
+        Args:
+            epsilon (float): Tolérance pour la comparaison flottante.
+
+        Returns:
+            Matrix: L'instance courante ou une nouvelle instance transposée si corrigée.
+        
+        Raises:
+            ValueError: Si la matrice n'est stochastique ni en ligne ni en colonne.
+        """
+        # 1. Vérification standard (Lignes)
+        row_sums = self.data.sum(axis=1)
+        # On vérifie si toutes les sommes sont proches de 1
+        # Note: on gère le cas des lignes vides (somme=0) qui peuvent arriver avec du padding masqué,
+        # mais la demande spécifie "égale à 1". On suppose ici une matrice d'attention valide.
+        if np.allclose(row_sums, 1.0, atol=epsilon):
+            return self
+
+        # 2. Tentative de correction (Transposition)
+        col_sums = self.data.sum(axis=0) # Équivalent à row_sums de la transposée
+        
+        if np.allclose(col_sums, 1.0, atol=epsilon):
+            logger.warning(
+                f"Matrice non stochastique sur les lignes (Somme != 1). "
+                f"Cependant, elle l'est sur les colonnes. Transposition appliquée automatiquement."
+            )
+            return self.transpose()
+
+        # 3. Échec critique
+        # Calcul de l'écart max pour le message d'erreur
+        max_deviation = np.max(np.abs(row_sums - 1.0))
+        raise ValueError(
+            f"La matrice d'attention est invalide : la somme des lignes n'est pas égale à 1 "
+            f"(Ecart max: {max_deviation:.4f}). "
+            f"La transposition n'a pas résolu le problème."
+        )
 
     # --- Méthodes de Manipulation (Retournent une nouvelle Matrix) ---
 
@@ -223,5 +276,13 @@ class Matrix:
 
 if __name__ == "__main__":
     import doctest; doctest.testmod()
-    mat = Matrix(np.array([[1, 2], [3, 4], [5, 6]])) 
-    print(mat.merge_bpe(row_groups=[[1, 2]], method='max').data.tolist())
+    
+    # Test manuel de la stochastique
+    # Cas 1 : Normal
+    mat_ok = Matrix(np.array([[0.5, 0.5], [0.2, 0.8]]))
+    assert mat_ok.ensure_stochastic().shape == (2, 2)
+    
+    # Cas 2 : Transposée
+    mat_transposed = Matrix(np.array([[0.5, 0.2], [0.5, 0.8]])) # Somme col = 1, ligne != 1
+    fixed = mat_transposed.ensure_stochastic()
+    print("Correction transposée effectuée ? :", np.allclose(fixed.data.sum(axis=1), 1.0))

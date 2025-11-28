@@ -27,7 +27,7 @@ def process_file(json_path: str):
         # Exemple : Sauvegarde
         processed_att.save(
             output_dir="./output_concat", 
-            format="json",
+            format="pdf_heatmap",
             filename_suffix=f"_L{att_mat.layer_id}_H{att_mat.head_id}"
         )
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     apply_tracing(globals())
     logger.info("Démarrage du traitement du fichier de test.") 
 
-    test_folder = "188.json"
+    test_folder = "1850.json"
     file = f"/home/getalp/lopezfab/temp/temp/test_attn/{test_folder}"
 
     print(process_file(file))
