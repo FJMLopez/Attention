@@ -64,6 +64,7 @@ class ConcatModelLoader:
             # Fallback simple : si mismatch léger dû à <eos> manquant à la fin absolue
             if n_rows == total_len - 1 and sentences[-1].tokens[-1] == "<eos>":
                  # On retire le dernier eos artificiel pour coller à la matrice
+                 logger.warning(f"ID {data['id']}: Retrait du dernier <eos> pour correspondance matrice.")
                  sentences[-1].tokens.pop()
             else:
                  return []
@@ -156,8 +157,10 @@ class ConcatModelLoader:
                     
                     # 1. On termine la phrase PRÉCÉDENTE (sans "It")
                     shift += 1
-                    current_tokens.append("<eos>")
-                    sentences.append(Sentence(tokens=current_tokens, system_id=base_id - label))
+                    if len(current_tokens) > 0: # Si la phrase n'est pas vide
+                        # Alors on la sauvegarde
+                        current_tokens.append("<eos>")
+                        sentences.append(Sentence(tokens=current_tokens, system_id=base_id - label))
                     
                     # 2. On commence la NOUVELLE phrase avec "It"
                     current_tokens = [tok]
@@ -169,8 +172,11 @@ class ConcatModelLoader:
         # Sauvegarde de la dernière phrase restée en mémoire
         if current_tokens:
             # On utilise le dernier label vu pour l'ID
+            current_tokens.append("<eos>")
             sentences.append(Sentence(tokens=current_tokens, system_id=base_id - seg_labels[-1]))
-            
+        logger.debug(f"Découpage en {len(sentences)} phrases effectué.")
+        for sentence in sentences:
+            logger.debug(f"Phrase ID {sentence.system_id} (len: {len(sentence.tokens)}): {' '.join(sentence.tokens)}")
         return sentences
 
 
