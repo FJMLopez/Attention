@@ -5,6 +5,10 @@ from typing import ClassVar, List
 from Attention_process.Classes.config import HEAD_DOCUMENTS_FILE
 from Attention_process.Classes.utils import get_documents_heads
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class Sentence:
     """
@@ -27,6 +31,9 @@ class Sentence:
     def __repr__(self) -> str:
         return f"{{'_system_id': {self.system_id}, '_tokens': {self.tokens}}}"
     
+    def __len__(self) -> int:
+        return len(self.tokens)
+
     #############################
     ### Propriétés d'instance ###
     #############################

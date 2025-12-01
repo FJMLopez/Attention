@@ -9,13 +9,25 @@ from Attention_process.Classes.ConcatAttentionMatrix import ConcatAttentionMatri
 
 logger = logging.getLogger(__name__)
 
+# Tolérance pour la vérification de la somme des poids en ligne (devrait être proche de 1)
+ROW_SUM_TOLERANCE = 1e-4
+
 class ConcatModelLoader:
     """
     Chargeur spécifique pour le format de données 'Concaténation'.
     """
 
     @staticmethod
-    def load_from_json_data(data: Dict[str, Any]) -> List[ConcatAttentionMatrix]:
+    def load_from_json_data(data: Dict[str, Any], include_self_attention: bool = False) -> List[ConcatAttentionMatrix]:
+        """
+        Charge les matrices d'attention à partir des données JSON fournies.
+        Args:
+            data (Dict[str, Any]): Données JSON brutes.
+            include_self_attention (bool): Si True, inclut la partie self-attention dans les colonnes.
+        Returns:
+            List[ConcatAttentionMatrix]: Liste des matrices d'attention chargées.
+        """
+        
         # 1. Parsing des phrases (Identique au code précédent corrigé)
         raw_tokens = data['src_tokens'].split()
         seg_labels = data['src_segments_labels']
@@ -32,7 +44,7 @@ class ConcatModelLoader:
         # 2. Matrice
         enc_attn = np.array(data['heads_enc_attn'], dtype=np.float32)
         
-        # Gestion dimensions 4D ou 5D selon votre format (Batch ou pas)
+        # Gestion dimensions 4D ou 5D selon le format (Batch ou pas)
         if enc_attn.ndim == 5:
              # [Layers, Heads, Batch, Rows, Cols] -> On prend Batch 0
              n_layers, n_heads, _, n_rows, n_cols = enc_attn.shape
@@ -66,12 +78,29 @@ class ConcatModelLoader:
         start_row = len_ctx_total
         end_row = len_ctx_total + len_current
         start_col = 0
-        end_col = len_ctx_total
-
+        end_col: int = 0
+        if include_self_attention: # On inclut ou non la partie self-attention
+            # On va jusqu'à la fin de la phrase courante
+            end_col = len_ctx_total + len_current
+        else:
+            # On s'arrête à la fin du contexte
+            end_col = len_ctx_total
+        
         output_matrices = []
 
         for l in range(n_layers):
             for h in range(n_heads):
+                # Vérification de la somme des poids en ligne
+                row_sums = np.sum(enc_attn[l, h], axis=1) # Somme pour chaque ligne
+                # Vérifie si toutes les sommes sont proches de 1 avec la tolérance
+                if not np.allclose(row_sums, 1.0, atol=ROW_SUM_TOLERANCE):
+                    # Trouver l'écart max pour le log
+                    max_deviation = np.max(np.abs(row_sums - 1.0))
+                    logger.warning(
+                        f"ID {data['id']} (Layer: {l} Head: {h}): Somme des poids en ligne non proche de 1. "
+                        f"Déviation max: {max_deviation:.6f} > {ROW_SUM_TOLERANCE}. "
+                        "Ceci peut indiquer un problème d'encodage (e.g., softmax partielle)."
+                    )
                 # Slicing Numpy : [Lignes(Courante), Colonnes(Contextes)]
                 sub_data = enc_attn[l, h, start_row:end_row, start_col:end_col]
                 

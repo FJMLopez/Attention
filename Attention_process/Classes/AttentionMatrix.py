@@ -8,6 +8,11 @@ from Attention_process.Classes.Matrix import Matrix
 from Attention_process.Classes.Sentence import Sentence
 from Attention_process.services.MatrixExporter import MatrixExporter
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class AttentionMatrix:
     """
@@ -141,12 +146,33 @@ class AttentionMatrix:
     
     def threshold(self, 
                   method: Literal["uniform", "value", "to_uniform"] = "uniform", 
-                  value: Optional[float] = None) -> 'AttentionMatrix':
-        """Applique un seuillage sur la matrice."""
+                  value: Optional[float] = None,
+                  total_seq_len: Optional[int] = None) -> 'AttentionMatrix':
+        """
+        Applique un seuillage sur la matrice.
+
+        Args:
+            method: Méthode de seuillage ('uniform', 'value', 'to_uniform').
+            value: Valeur du seuil (dénominateur) si method='value'.
+            total_seq_len: (Optionnel) Si method='uniform', permet de forcer la longueur de référence 
+                           pour le calcul de l'uniforme (1 / total_seq_len).
+                           Indispensable pour les modèles par concaténation où la matrice est une sous-vue.
+        """
+        
+        # Logique spécifique : Uniforme basé sur une longueur externe (Concaténation)
+        if method == "uniform" and total_seq_len is not None:
+            # On détourne la méthode 'value' de la classe Matrix qui fait (1.0 / value)
+            # Cela permet d'appliquer un seuil de (1 / total_seq_len)
+            new_matrix = self.matrix.threshold(method="value", value=total_seq_len)
+            
+        else:
+            # Comportement standard
+            new_matrix = self.matrix.threshold(method, value)
+
         return AttentionMatrix(
             layer_id=self.layer_id,
             head_id=self.head_id,
-            matrix=self.matrix.threshold(method, value),
+            matrix=new_matrix,
             row_sentence=copy.deepcopy(self.row_sentence),
             col_sentence=copy.deepcopy(self.col_sentence),
             source_model=self.source_model

@@ -172,17 +172,26 @@ class MatrixExporter:
         
         # Masque et Labels
         epsilon = 1e-6
+        # La condition est cruciale : on masque et on n'annote que si la valeur est significative
+        # On utilise une logique booléenne simple pour `annot_labels`
+        
+        # --- 🎯 MODIFICATION ICI : Ne pas afficher de texte si la valeur est <= epsilon ---
+        # 1. Crée le masque (pour potentiellement masquer la couleur si vous le souhaitez, mais ici c'est pour l'annotation)
         mask = numeric_data <= epsilon 
-        annot_labels = numeric_data.map(lambda x: f"{x:.2f}" if x > epsilon else "")
-
+        
+        # 2. Crée les étiquettes d'annotation : "" si valeur est petite, sinon formatée
+        # annot_labels = numeric_data.applymap(lambda x: f"{x:.2f}" if x > epsilon else "")
+        # ----------------------------------------------------------------------------------
+        
+        # print(f"annot_labels:\n{annot_labels}") 
+        
         # 3. Tracé Heatmap
         sns.heatmap(
             numeric_data, 
             vmin=0, vmax=1, 
             cmap=sns.cm.rocket_r,
-            annot=annot_labels,
-            fmt="",
-            mask=mask,           
+            annot=True, # Utilise les labels modifiés
+            mask=mask,        # Optionnel : le masque peut être conservé si vous voulez cacher la couleur, mais ce n'était pas l'objectif premier.
             linecolor='gray',
             linewidths=.5,
             ax=ax,
@@ -191,7 +200,7 @@ class MatrixExporter:
         )
 
         # 4. Configuration Axes
-        # Augmentation de la taille de police des axes aussi
+        # ... (le reste du code reste inchangé)
         ax.set_yticklabels(df["Row_Labels"], rotation=0, fontsize=12)
         ax.set_xticklabels(col_labels, rotation=70, fontsize=12)
         

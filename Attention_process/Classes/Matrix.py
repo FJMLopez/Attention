@@ -225,6 +225,31 @@ class Matrix:
         else:
             raise NotImplementedError(f"Méthode {method} non implémentée.")
 
+    def suppress_below_uniform(self) -> 'Matrix':
+        """
+        Supprime les valeurs inférieures à la distribution uniforme.
+        La distribution uniforme est définie par 1 / nombre_de_colonnes.
+        
+        Toutes les valeurs strictement inférieures à (1/N) deviennent 0.0.
+        
+        Returns:
+            Matrix: Nouvelle matrice filtrée.
+        """
+        if self.cols == 0:
+            return self
+
+        # Calcul du seuil uniforme (1/N)
+        uniform_threshold = 1.0 / self.cols
+        
+        # Copie des données pour l'immutabilité
+        new_data = self.data.copy()
+        
+        # Application du filtre (set à 0 si < seuil)
+        new_data[new_data < uniform_threshold] = 0.0
+        
+        return Matrix(new_data)
+
+
     def threshold(self, 
                   method: Literal["uniform", "value", "to_uniform"] = "uniform", 
                   value: Optional[float] = None) -> 'Matrix':
@@ -245,9 +270,7 @@ class Matrix:
         
         if method == "uniform":
             # Supprime ce qui est inférieur à l'équiprobabilité (1/nb_colonnes)
-            threshold_val = 1.0 / cols
-            new_data[new_data < threshold_val] = 0.0
-            
+            return self.suppress_below_uniform()
         elif method == "to_uniform":
             # Remplace les valeurs faibles par l'uniforme
             threshold_val = 1.0 / cols

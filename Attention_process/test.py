@@ -3,6 +3,7 @@ from Attention_process.io_outils.utils import load_json_file
 from Attention_process.io_outils.concat_loader import ConcatModelLoader
 from Attention_process.utils import setup_logging
 from Attention_process.auto_trace import apply_tracing
+from Attention_process.Classes.AttentionAggregator import AttentionAggregator
 
 import logging
 
@@ -12,24 +13,33 @@ def process_file(json_path: str):
     
     # 2. Transformation en objets métier
     # ConcatModelLoader s'occupe de tout le parsing complexe (segments, eos, slicing numpy)
-    attention_matrices = ConcatModelLoader.load_from_json_data(raw_data)
+    attention_matrices = ConcatModelLoader.load_from_json_data(raw_data, include_self_attention=True)
     
-    print(f"Extraction terminée : {len(attention_matrices)} matrices trouvées.")
-    
-    if not attention_matrices:
-        return
+    logger.info(f"Extraction terminée : {len(attention_matrices)} matrices trouvées.")
+    logger.debug(f"Current sentence len: {len(attention_matrices[0].row_sentence.tokens) if attention_matrices else 'N/A'}")
+    logger.debug(f"Context sentences count: {[len(contexte) for contexte in attention_matrices[0].context_sentences] if attention_matrices else 'N/A'}")
 
+    mean_last_layer = AttentionAggregator.aggregate(
+        matrices = [mat for mat in attention_matrices if mat.layer_id == max(m.layer_id for m in attention_matrices)],
+        method='mean'
+    )
+    mean_last_layer.merge_bpe(method='max').threshold(method='uniform').save(
+        output_dir="./output_concat", 
+        format="pdf_heatmap",
+        filename_suffix=f"_Mean_Last_Layer"
+    )
     # 3. Traitement standard (le reste de votre pipeline ne change pas)
-    for att_mat in attention_matrices:
-        # Exemple : Fusion BPE
-        processed_att = att_mat.merge_bpe(method='max')
+    # for att_mat in attention_matrices:
+    #     # Exemple : Fusion BPE
+    #     processed_att = att_mat.merge_bpe(method='max')
+    #     processed_att = processed_att.threshold(method='uniform')
         
-        # Exemple : Sauvegarde
-        processed_att.save(
-            output_dir="./output_concat", 
-            format="pdf_heatmap",
-            filename_suffix=f"_L{att_mat.layer_id}_H{att_mat.head_id}"
-        )
+    #     # Exemple : Sauvegarde
+    #     processed_att.save(
+    #         output_dir="./output_concat", 
+    #         format="pdf_heatmap",
+    #         filename_suffix=f"_L{att_mat.layer_id}_H{att_mat.head_id}"
+    #     )
 
 
 # Simulation d'appel
