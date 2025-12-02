@@ -2,8 +2,8 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Any, List
-from Attention_process.Classes.Matrix import Matrix
+from typing import Any, List, TYPE_CHECKING
+
 import logging
 
 # Gestion des dépendances optionnelles (xlsxwriter)
@@ -11,6 +11,10 @@ import xlsxwriter
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+
+if TYPE_CHECKING:
+    from Attention_process.Classes.Matrix import Matrix
+    from Attention_process.Classes.Sentence import Sentence
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,14 @@ class MatrixExporter:
     """
 
     @staticmethod
-    def _ensure_folder(path: str, create: bool = False):
+    def _ensure_folder(path: str | Path, create: bool = False) -> None:
+        """Vérifie l'existence du dossier, le crée si demandé.
+        Args:
+            path (str | Path): Chemin du dossier.
+            create (bool): Indique si le dossier doit être créé s'il n'existe pas
+            
+        Raises:
+            FileNotFoundError: Si le dossier n'existe pas et create est False."""
         p = Path(path)
         if create:
             p.mkdir(parents=True, exist_ok=True)
@@ -32,7 +43,15 @@ class MatrixExporter:
     def _create_dataframe(matrix_data: List[List[float]], 
                           row_tokens: List[str], 
                           col_tokens: List[str]) -> 'pd.DataFrame':
-        """Helper pour créer un DataFrame Pandas proprement."""
+        """Helper pour créer un DataFrame Pandas proprement.
+         
+         Args:
+            matrix_data (List[List[float]]): Données de la matrice.
+            row_tokens (List[str]): Tokens de la phrase courante (lignes).
+            col_tokens (List[str]): Tokens de la phrase contexte (colonnes).
+        
+        Returns:
+            pd.DataFrame: DataFrame formaté avec tokens en index et colonnes."""
         
         df = pd.DataFrame(matrix_data, columns=col_tokens)
         # On ajoute les row_tokens comme une colonne temporaire ou un index
@@ -43,11 +62,11 @@ class MatrixExporter:
     # --- Exports Texte / Données ---
 
     @staticmethod
-    def to_xlsx(matrix: Matrix, crt: Any, ctx: Any, folder: str, filename: str, precision: int = 2, create_folder: bool = False):
+    def to_xlsx(matrix: 'Matrix', crt: 'Sentence', ctx: 'Sentence', folder: str | Path, filename: str | Path, precision: int = 2, create_folder: bool = False) -> None:
         """Exporte en Excel avec mise en forme conditionnelle."""
 
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / f"{filename}.xlsx"
+        full_path = Path(folder) / Path(filename) / ".xlsx"
 
         workbook = xlsxwriter.Workbook(str(full_path))
         worksheet = workbook.add_worksheet()
@@ -87,10 +106,16 @@ class MatrixExporter:
         workbook.close()
 
     @staticmethod
-    def to_tsv(matrix: Matrix, crt: Any, ctx: Any, folder: str, filename: str, precision: int = 2, create_folder: bool = False):
+    def to_tsv(matrix:'Matrix', crt: Any, ctx: Any, folder: str | Path, filename: str | Path, precision: int = 2, create_folder: bool = False):
         """Exporte en TSV."""
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / f"{filename}.tsv"
+        full_path = Path(folder) / Path(filename) / ".tsv"
+
+        def formatage(value: float) -> str:
+            if value == 0:
+                return "0.0"
+            else:
+                return f"{value:.{precision}f}"
 
         rows, cols = matrix.shape
         data = matrix.data
@@ -109,10 +134,10 @@ class MatrixExporter:
                 f.write(line + "\n")
 
     @staticmethod
-    def to_json(matrix: Matrix, crt: Any, ctx: Any, folder: str, filename: str, precision: int = 2, create_folder: bool = False):
+    def to_json(matrix: 'Matrix', crt: Any, ctx: Any, folder: str | Path, filename: str | Path, precision: int = 2, create_folder: bool = False):
         """Exporte en JSON."""
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / f"{filename}.json"
+        full_path = Path(folder) / Path(filename) / ".json"
 
         # On suppose que crt et ctx ont une méthode toJSON ou sont convertibles
         # Ici on utilise __dict__ par défaut si disponible
@@ -132,14 +157,14 @@ class MatrixExporter:
             # --- Visualisation PDF / Heatmap ---
 
     @staticmethod
-    def to_pdf_heatmap(matrix: Any, crt: Any, ctx: Any, folder: str, filename: str, create_folder: bool = False):
+    def to_pdf_heatmap(matrix: Any, crt: Any, ctx: Any, folder: str | Path, filename: str | Path, create_folder: bool = False):
         """
         Génère une heatmap Seaborn et la sauvegarde en PDF.
         Cases agrandies pour une meilleure lisibilité.
         """
 
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / f"{filename}.pdf"
+        full_path = Path(folder) / Path(filename) / ".pdf"
 
         # 1. Préparation des données
         data_array = matrix.data
