@@ -34,6 +34,33 @@ class Sentence:
     def __len__(self) -> int:
         return len(self.tokens)
 
+    def __getitem__(self, index: int | slice) -> str | List[str]:
+        """
+        Permet l'accès aux tokens via index ou slicing, comme une liste standard.
+
+        Args:
+            index (int | slice): L'index entier ou la slice (ex: 1:5) désiré(e).
+
+        Returns:
+            str | List[str]: Le token unique (si int) ou une liste de tokens (si slice).
+
+        Tests:
+        >>> s = Sentence(system_id=1, tokens=['A', 'B', 'C', 'D', 'E'])
+        >>> s[0]
+        'A'
+        >>> s[2]
+        'C'
+        >>> s[-1]
+        'E'
+        >>> s[1:4]
+        ['B', 'C', 'D']
+        >>> s[2:]
+        ['C', 'D', 'E']
+        >>> s[::-1]
+        ['E', 'D', 'C', 'B', 'A']
+        """
+        return self.tokens[index]
+
     #############################
     ### Propriétés d'instance ###
     #############################
