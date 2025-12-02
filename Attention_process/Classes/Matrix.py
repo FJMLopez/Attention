@@ -29,6 +29,41 @@ class Matrix:
         elif self.data.ndim != 2:
             raise ValueError(f"La matrice doit être 2D. Reçu: {self.data.ndim}D")
 
+    def __getitem__(self, key: Any) -> Union[float, np.ndarray, 'Matrix']:
+        """
+        Permet l'accès indexé ou le slicing direct sur la matrice.
+        Délègue à l'array NumPy sous-jacent.
+        
+        Si le résultat est un tableau 2D, retourne une nouvelle instance de Matrix.
+        Sinon (scalaire ou tableau 1D), retourne le résultat brut.
+
+        Args:
+            key: Index, slice ou tuple d'indices supportés par NumPy.
+
+        Returns:
+            Matrix si le résultat est 2D, sinon np.ndarray ou float.
+
+        Examples:
+            >>> m = Matrix(np.array([[1, 2], [3, 4]]))
+            >>> m[0, 1]
+            2.0
+            >>> sub = m[0:1, :]
+            >>> isinstance(sub, Matrix)
+            True
+            >>> sub.shape
+            (1, 2)
+        """
+        result = self.data[key]
+        
+        # Si le résultat est un tableau numpy 2D, on le re-wrap dans Matrix
+        if isinstance(result, np.ndarray) and result.ndim == 2:
+            return Matrix(result)
+        
+        # Sinon (scalaire ou vecteur 1D), on retourne le résultat brut
+        # car Matrix n'accepte pas les dimensions != 2
+        return result
+
+
     # --- Propriétés ---
 
     @property
@@ -296,6 +331,46 @@ class Matrix:
         """Alias pour remove_indices spécifiquement pour le padding."""
         return self.remove_indices(row_pad_indices, col_pad_indices)
 
+    def save(self, 
+             output_dir: str | Path, 
+             format: Literal["npy", "csv", "json", "pdf_heatmap"] = "npy", 
+             filename: str = "") -> None:
+        """Sauvegarde la matrice dans le format spécifié.
+            Utilise MatrixExporter pour les formats riches (pdf, xlsx, json) 
+            et numpy pour les formats bruts (npy, csv).
+        
+        Args:
+            output_dir: Répertoire de sortie.
+            format: 'npy', 'csv', ou 'json'.
+            filename_suffix: Suffixe à ajouter au nom de fichier.
+        """
+        from Attention_process.services.MatrixExporter import MatrixExporter
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        filepath = output_dir / f"{filename}.{format}"
+        row_dummy = [''] * self.rows  # Placeholder, à remplacer par les phrases si nécessaire
+        col_dummy = [''] * self.cols  # Placeholder, à remplacer par les phrases si nécessaire
+        if format == "npy":
+            np.save(filepath, self.data)
+        elif format == "csv":
+            np.savetxt(filepath, self.data, delimiter=",")
+        elif format == "json":
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(self.to_list(), f, ensure_ascii=False, indent=4)
+        elif format in ['tsv', 'txt']:
+                # On utilise MatrixExporter qui gère bien les TSV avec headers
+                MatrixExporter.to_tsv(self, row_dummy, col_dummy, output_dir, filename, create_folder=True)
+        elif format == 'json':
+            MatrixExporter.to_json(self, row_dummy, col_dummy, output_dir, filename, create_folder=True)
+
+        elif format == 'xlsx':
+            MatrixExporter.to_xlsx(self, row_dummy, col_dummy, output_dir, filename, create_folder=True)
+
+        elif format in ['pdf', 'pdf_heatmap']:
+            MatrixExporter.to_pdf_heatmap(self, row_dummy, col_dummy, output_dir, filename, create_folder=True)
+        else:
+            raise NotImplementedError(f"Format {format} non supporté.")
 
 if __name__ == "__main__":
     import doctest; doctest.testmod()
