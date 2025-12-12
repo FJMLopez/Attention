@@ -275,7 +275,8 @@ class Matrix:
 
         # Calcul du seuil uniforme (1/N)
         uniform_threshold = 1.0 / self.cols
-        
+        logger.debug(f"Threshold set to {uniform_threshold}")
+
         # Copie des données pour l'immutabilité
         new_data = self.data.copy()
         
@@ -309,15 +310,14 @@ class Matrix:
         elif method == "to_uniform":
             # Remplace les valeurs faibles par l'uniforme
             threshold_val = 1.0 / cols
+            logger.debug(f"Threshold set to {threshold_val}")
             new_data[new_data < threshold_val] = threshold_val
             
         elif method == "value":
             if value is None:
                 raise ValueError("Vous devez fournir 'value' pour le seuillage par valeur.")
-            # Attention: votre code original faisait 1/value. Je garde cette logique ou j'utilise value brut ?
-            # Code original: self[self < 1/value] = 0. Je présume que value est un entier diviseur.
-            # Pour être plus propre, on s'attendrait à un float direct, mais respectons la logique existante.
             limit = 1.0 / value if value != 0 else 0
+            logger.debug(f"Threshold set to {limit}")
             new_data[new_data < limit] = 0.0
             
         else:
