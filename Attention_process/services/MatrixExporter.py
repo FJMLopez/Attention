@@ -66,7 +66,7 @@ class MatrixExporter:
         """Exporte en Excel avec mise en forme conditionnelle."""
 
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / Path(filename) / ".xlsx"
+        full_path = Path(folder) / Path(f"{filename}.xlsx")
 
         workbook = xlsxwriter.Workbook(str(full_path))
         worksheet = workbook.add_worksheet()
@@ -109,7 +109,7 @@ class MatrixExporter:
     def to_tsv(matrix:'Matrix', crt: Any, ctx: Any, folder: str | Path, filename: str | Path, precision: int = 2, create_folder: bool = False):
         """Exporte en TSV."""
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / Path(filename) / ".tsv"
+        full_path = Path(folder) / Path(f"{filename}.tsv")
 
         def formatage(value: float) -> str:
             if value == 0:
@@ -137,7 +137,7 @@ class MatrixExporter:
     def to_json(matrix: 'Matrix', crt: Any, ctx: Any, folder: str | Path, filename: str | Path, precision: int = 2, create_folder: bool = False):
         """Exporte en JSON."""
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / Path(filename) / ".json"
+        full_path = Path(folder) / Path(f"{filename}.json")
 
         # On suppose que crt et ctx ont une méthode toJSON ou sont convertibles
         # Ici on utilise __dict__ par défaut si disponible
