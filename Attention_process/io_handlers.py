@@ -5,7 +5,8 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-from models import AttentionMatrix
+from Attention_process.Classes.AttentionMatrix import AttentionMatrix
+from Attention_process.Classes.Sentence import Sentence
 
 logger = logging.getLogger("AttentionProcessor")
 
@@ -20,8 +21,8 @@ class CustomFormatLoader(AttentionLoader):
         logger.info(f"Chargement simulé depuis {source}")
         
         # Simulation: Phrase courante (Query) vs Contexte (Key)
-        row_toks = ["Le", "chat", "##on", "mange"]      # 4 tokens
-        col_toks = ["Le", "petit", "chat", "est", "là"] # 5 tokens
+        row_toks = Sentence(system_id=1, tokens= ["Le", "chat", "##on", "mange"])      # 4 tokens
+        col_toks = Sentence(system_id=0, tokens= ["Le", "petit", "chat", "est", "là"]) # 5 tokens
         
         matrices = []
         for layer in range(2):
@@ -33,8 +34,8 @@ class CustomFormatLoader(AttentionLoader):
             matrices.append(AttentionMatrix(
                 layer_id=layer, 
                 head_id=0, 
-                row_tokens=row_toks, 
-                col_tokens=col_toks, 
+                row_sentence=row_toks, 
+                col_sentence=col_toks, 
                 matrix=mat,
                 source_model="model-v1"
             ))
@@ -53,9 +54,9 @@ class JsonSaver(AttentionSaver):
                 "head": data.head_id,
                 "shape": data.shape
             },
-            "row_tokens": data.row_tokens, # Phrase Courante
-            "col_tokens": data.col_tokens, # Contexte
-            "matrix": data.matrix.tolist()
+            "row_tokens": data.row_sentence, # Phrase Courante
+            "col_tokens": data.col_sentence, # Contexte
+            "matrix": data.matrix.to_list()
         }
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output, f, ensure_ascii=False, indent=4)
@@ -65,10 +66,10 @@ class TsvSaver(AttentionSaver):
         with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f, delimiter='\t')
             # Header : Vide + Tokens Contexte
-            writer.writerow(['ROW\COL'] + data.col_tokens)
+            writer.writerow(['ROW\COL'] + data.col_sentence.tokens)
             # Lignes : Token Courant + Poids
-            for i, row_vals in enumerate(data.matrix):
-                writer.writerow([data.row_tokens[i]] + list(row_vals))
+            for i, row_vals in enumerate(data.matrix.data):
+                writer.writerow([data.row_sentence.tokens[i]] + list(row_vals))
 
 class PdfHeatmapSaver(AttentionSaver):
     def save(self, data: AttentionMatrix, output_path: str):
@@ -79,17 +80,17 @@ class PdfHeatmapSaver(AttentionSaver):
             fig_w = max(8, w * 0.5)
             
             fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-            cax = ax.matshow(data.matrix, cmap='viridis', aspect='auto')
+            cax = ax.matshow(data.matrix.data, cmap='viridis', aspect='auto')
             fig.colorbar(cax)
 
             # Configuration Axe X (Contexte)
-            ax.set_xticks(np.arange(len(data.col_tokens)))
-            ax.set_xticklabels(data.col_tokens, rotation=90)
+            ax.set_xticks(np.arange(len(data.col_sentence)))
+            ax.set_xticklabels(data.col_sentence.tokens, rotation=90)
             ax.set_xlabel("Contexte (Keys)")
 
             # Configuration Axe Y (Phrase Courante)
-            ax.set_yticks(np.arange(len(data.row_tokens)))
-            ax.set_yticklabels(data.row_tokens)
+            ax.set_yticks(np.arange(len(data.row_sentence)))
+            ax.set_yticklabels(data.row_sentence.tokens)
             ax.set_ylabel("Phrase Courante (Queries)")
 
             plt.title(f"Attention L{data.layer_id} H{data.head_id}")
