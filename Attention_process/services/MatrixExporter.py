@@ -164,7 +164,7 @@ class MatrixExporter:
         """
 
         MatrixExporter._ensure_folder(folder, create_folder)
-        full_path = Path(folder) / Path(filename) / ".pdf"
+        full_path = Path(folder) / Path(f"{filename}.pdf")
 
         # 1. Préparation des données
         data_array = matrix.data
@@ -200,7 +200,6 @@ class MatrixExporter:
         # La condition est cruciale : on masque et on n'annote que si la valeur est significative
         # On utilise une logique booléenne simple pour `annot_labels`
         
-        # --- 🎯 MODIFICATION ICI : Ne pas afficher de texte si la valeur est <= epsilon ---
         # 1. Crée le masque (pour potentiellement masquer la couleur si vous le souhaitez, mais ici c'est pour l'annotation)
         mask = numeric_data <= epsilon 
         
@@ -216,7 +215,7 @@ class MatrixExporter:
             vmin=0, vmax=1, 
             cmap=sns.cm.rocket_r,
             annot=True, # Utilise les labels modifiés
-            mask=mask,        # Optionnel : le masque peut être conservé si vous voulez cacher la couleur, mais ce n'était pas l'objectif premier.
+            mask=mask,        
             linecolor='gray',
             linewidths=.5,
             ax=ax,
@@ -225,7 +224,6 @@ class MatrixExporter:
         )
 
         # 4. Configuration Axes
-        # ... (le reste du code reste inchangé)
         ax.set_yticklabels(df["Row_Labels"], rotation=0, fontsize=12)
         ax.set_xticklabels(col_labels, rotation=70, fontsize=12)
         
